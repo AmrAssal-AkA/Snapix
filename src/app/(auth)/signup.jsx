@@ -1,8 +1,20 @@
-import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
+import {
+  Alert,
+  Linking,
+  Pressable,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from "react-native";
 import React, { useState } from "react";
 import { FontAwesome } from "@expo/vector-icons";
-import { Link } from "expo-router";
+import { Link, router, useRouter } from "expo-router";
 import { supabase } from "../../utils/supabase";
+import * as WebBrowser from "expo-web-browser";
+import { makeRedirectUri } from "expo-auth-session";
+
+WebBrowser.maybeCompleteAuthSession();
 
 const Signup = () => {
   const [userName, setUserName] = useState("");
@@ -10,40 +22,92 @@ const Signup = () => {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const router = useRouter();
 
   const handleSignup = async () => {
-    try{
+    if (!userName.trim() || !email.trim() || !password.trim()) {
+      Alert.alert("Validation Error", "Please fill in all fields.");
+      return;
+    }
+    if (!email.includes("@")) {
+      Alert.alert("Validation Error", "Please enter a valid email address.");
+      return;
+    }
+    if (!password || password.length < 6) {
+      Alert.alert(
+        "Validation Error",
+        "Password must be at least 6 characters long.",
+      );
+      return;
+    }
+    try {
       setLoading(true);
+      setError(null);
       const { data, error } = await supabase.auth.signUp({
-        email: email,
+        email: email.trim(),
         password: password,
         options: {
           data: {
-            username: userName,
-            full_name: userName,
-          }
-        }
+            username: userName.trim(),
+          },
+        },
       });
-        if(error){
-          setError(error.message);
-          console.log("Error signing up:", error.message);
-          return;
-        }
-      if(data.session){
-         console.log("User signed up successfully:", data.user);
-      }else{
-        console.log("Signup successful, but no session found. Please check your email for confirmation.");
+      if (error) {
+        setError(error.message);
+        Alert.alert("Signup Error", error.message);
+        return;
       }
-    }catch(error){
-        console.log("Error signing up:", error.message);
-    }finally{
-        setLoading(false);
+      Alert.alert(
+        "Signup Successful",
+        "Please check your email to confirm your account.",
+      );
+    } catch (error) {
+      console.log("Error signing up:", error.message);
+    } finally {
+      setLoading(false);
     }
-  
-  }
+  };
 
-
-
+  const handleGoogleSignup = async () => {
+    const redirectUri = makeRedirectUri({
+      scheme: "snapix",
+    });
+    try {
+      setLoading(true);
+      setError(null);
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: {
+          redirectTo: redirectUri,
+          skipBrowserRedirect: true,
+        },
+      });
+      if (error) {
+        setError(error.message);
+        Alert.alert("Google Signup Error", error.message);
+        return;
+      }
+      if (data?.url) {
+        const result = await WebBrowser.openAuthSessionAsync(data.url, redirectUri);
+        if(result.type === "success"){
+          const URL = new URL(result.url);
+          await supabase.auth.setSession({
+            access_token: URL.searchParams.get("access_token"),
+            refresh_token: URL.searchParams.get("refresh_token"),
+          });
+          
+          Alert.alert("Signup Successful", "You have successfully signed up with Google!"),
+          router.push("/(tabs)/");
+        } else {
+          Alert.alert("Google Signup Error", "Authentication was cancelled.");
+        }
+      }
+    } catch (error) {
+      console.log("Error signing up with Google:", error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <View style={styles.container}>
@@ -70,7 +134,11 @@ const Signup = () => {
             color="gray"
             style={{ position: "absolute", top: 40, left: 10 }}
           />
-          <TextInput placeholder="John Doe" style={styles.input} onChangeText={setUserName} />
+          <TextInput
+            placeholder="John Doe"
+            style={styles.input}
+            onChangeText={setUserName}
+          />
         </View>
 
         <View style={{ marginBottom: 15 }}>
@@ -81,7 +149,11 @@ const Signup = () => {
             color="gray"
             style={{ position: "absolute", top: 40, left: 10 }}
           />
-          <TextInput placeholder="example@email.com" style={styles.input} onChangeText={setEmail} />
+          <TextInput
+            placeholder="example@email.com"
+            style={styles.input}
+            onChangeText={setEmail}
+          />
         </View>
 
         <View style={{ marginBottom: 15 }}>
@@ -101,11 +173,10 @@ const Signup = () => {
         </View>
 
         <View style={{ marginBottom: 15 }}>
-          <Pressable
-            style={styles.button}
-            onPress={handleSignup}
-          >
-            <Text style={styles.buttonText}>{loading ? "Signing Up..." : "Sign Up"}</Text>
+          <Pressable style={styles.button} onPress={handleSignup}>
+            <Text style={styles.buttonText}>
+              {loading ? "Signing Up..." : "Sign Up"}
+            </Text>
           </Pressable>
         </View>
 
@@ -115,34 +186,10 @@ const Signup = () => {
             <Pressable
               style={{
                 ...styles.button,
-                backgroundColor: "#3b5998",
-                marginRight: 10,
-              }}
-              onPress={() => console.log("Sign Up with Facebook")}
-            >
-              <View
-                style={{
-                  flexDirection: "row",
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-              >
-                <FontAwesome
-                  name="facebook"
-                  size={20}
-                  color="white"
-                  style={{ marginRight: 10 }}
-                />
-                <Text style={styles.buttonText}>Facebook</Text>
-              </View>
-            </Pressable>
-            <Pressable
-              style={{
-                ...styles.button,
                 backgroundColor: "#db4437",
                 marginLeft: 10,
               }}
-              onPress={() => console.log("Sign Up with Google")}
+              onPress={handleGoogleSignup}
             >
               <View
                 style={{

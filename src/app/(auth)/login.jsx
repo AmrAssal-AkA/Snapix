@@ -1,18 +1,61 @@
-import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
+import { Alert, Linking, Pressable, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import React, { useState } from "react";
-import { Link } from "expo-router";
+import { Link, useRouter } from "expo-router";
 import { FontAwesome } from "@expo/vector-icons";
 import { supabase } from "../../utils/supabase";
 
-const LoginPage =  () => {
+export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const router = useRouter();
 
   const handleLoginCardinates =async () => {
-    const { error} = await supabase.auth.signInWithPassword({
-      email: email,
-      password: password,
-    })
+    if(!email.trim() || !password.trim()){
+      Alert.alert("Validation Error", "Please fill in all fields.");
+      return;
+    }
+    if(!password){
+        Alert.alert("Validation Error", "Password must be at least 6 characters long.");
+    }
+
+    try{
+      setLoading(true);
+      setError(null);
+      const { error} = await supabase.auth.signInWithPassword({
+        email: email.trim(),
+        password: password,
+      });
+      if(!error){
+        router.push("/(tabs)/");
+      }
+      if (error) {
+        setError(error.message);
+      }
+      setLoading(false);
+    }catch(error){
+      setLoading(false);
+      setError(error.message);
+      Alert.alert("Login Error", error.message);
+    }finally{
+      setLoading(false);
+    }
+
+  }
+  const handleContinueWithGoogle = async () => {
+    try { 
+      const {data, error} = await supabase.auth.signInWithOAuth({
+        provider: "google",
+      })
+      if(error) throw error;
+      if(data.url){
+        await Linking.openURL(data.url);
+      }
+    }catch(error){
+      Alert.alert("Google Login Error", error.message);
+      console.log("Error logging in with Google:", error.message);
+    }
   }
 
 
@@ -30,29 +73,24 @@ const LoginPage =  () => {
       <View style={{ width: "90%", marginTop: 20 }}>
         <View style={{ marginBottom: 15 }}>
           <Text style={styles.label}>Email</Text>
-          <TextInput placeholder="example@example.com" style={styles.input} />
+          <FontAwesome name="envelope" size={20} color="gray" style={{ position: "absolute", top: 40, left: 10 }} />
+          <TextInput placeholder="example@example.com" style={styles.input} onChangeText={(text) => setEmail(text)} />
         </View>
         <View style={{ marginBottom: 15 }}>
           <Text style={styles.label}>Password</Text>
-          <TextInput placeholder="Enter your password" secureTextEntry style={styles.input} />
+          <FontAwesome name="lock" size={20} color="gray" style={{ position: "absolute", top: 40, left: 10 }} />
+          <TextInput placeholder="Enter your password" secureTextEntry style={styles.input} onChangeText={(text) => setPassword(text)} />
         </View>
         <View style={{ marginBottom: 15 }}>
-          <Pressable style={styles.button} onPress={() => console.log("Login button pressed")}>
+          <TouchableOpacity style={[styles.button, loading && { backgroundColor: "gray" }]} onPress={handleLoginCardinates} disabled={loading}>
             <Text style={styles.buttonText}>Login</Text>
-          </Pressable>
+          </TouchableOpacity>
         </View>
           <View style={styles.AlternativeLogin}>
             <Text style={{color: "gray", fontSize: 16}}>or continue with</Text>
 
         <View style={{ flexDirection: "row", marginTop: 20, marginBottom: 20 }}>
-          <Pressable style={{ ...styles.button, backgroundColor: "#3b5998", marginRight: 10 }} onPress={() => console.log("Login with Facebook")}>
-            <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "center" }}>
-              <FontAwesome name="facebook" size={20} color="white" style={{ marginRight: 10 }} />
-              <Text style={styles.buttonText}>Facebook</Text>
-            </View>
-          </Pressable>
-          
-          <Pressable style={{ ...styles.button, backgroundColor: "#db4437", marginLeft: 10 }} onPress={() => console.log("Login with Google")}>
+          <Pressable style={{ ...styles.button, backgroundColor: "#db4437", marginLeft: 10 }} onPress={handleContinueWithGoogle}>
             <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "center" }}>
               <FontAwesome name="google" size={20} color="white" style={{ marginRight: 10 }} />
               <Text style={styles.buttonText}>Google</Text>
@@ -69,7 +107,7 @@ const LoginPage =  () => {
   );
 };
 
-export default LoginPage;
+
 
 const styles = StyleSheet.create({
   container: {
@@ -94,8 +132,9 @@ const styles = StyleSheet.create({
   input: {
     borderWidth: 1,
     borderColor: "gray",
-    padding: 10,
-    borderRadius: 5
+    padding: 15,
+    borderRadius: 5,
+    paddingLeft: 40,
   },
   button: {
     padding: 10,

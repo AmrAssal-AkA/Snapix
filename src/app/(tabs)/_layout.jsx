@@ -1,32 +1,83 @@
-import { Text, View } from 'react-native'
-import React, { useState } from 'react'
-import { Tabs } from 'expo-router'
-import { Ionicons } from '@expo/vector-icons'
+import { Text, View } from "react-native";
+import React from "react";
+import { Tabs } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
+import Header from "../../components/Header";
 
 const RootLayout = () => {
-  const [focused, setFocused] = useState(false)
 
   return (
-    <Tabs screenOptions={{
-        headerShown: false,
+    <Tabs
+      screenOptions={{
+        headerShown: true,
+        header: () => <Header />,
         tabBarLabel: "",
         tabBarStyle: {
-            position: 'absolute',
-            bottom: 10,
-            left: 10,
-            right: 10,
-            elevation: 0,
-            backgroundColor: '#fff',
-            borderRadius: 15,
-            height: 60,
-        }
-    }}>
-        <Tabs.Screen name="index" options={{title: "Home", tabBarIcon: ({focused}) => <Ionicons name="home" size={24} color={focused ? "#ff6200" : "#000"} /> }} />
-        <Tabs.Screen name="messages" options={{title: "Messages", tabBarIcon: ({focused}) => <Ionicons name="chatbox" size={24} color={focused ? "#ff6200" : "#000"}   /> }} />
-        <Tabs.Screen name="explore" options={{title: "Explore", tabBarIcon: ({focused}) => <Ionicons name="search" size={24} color={focused  ? "#ff6200" : "#000"}   /> }} />
-        <Tabs.Screen name="profile" options={{title: "Profile", tabBarIcon: ({focused}) => <Ionicons name="person" size={24} color={focused ? "#ff6200" : "#000"}     /> }} />
+          position: "absolute",
+          bottom: 10,
+          left: 10,
+          right: 10,
+          elevation: 0,
+          backgroundColor: "#fff",
+          borderRadius: 15,
+          height: 60,
+        },
+      }}
+    >
+      <Tabs.Screen
+        name="index"
+        options={{
+          title: "Home",
+          tabBarIcon: ({ focused }) => (
+            <Ionicons
+              name="home"
+              size={24}
+              color={focused ? "#ff6200" : "#000"}
+            />
+          )
+        }}
+      />
+      <Tabs.Screen
+        name="messages"
+        options={{
+          title: "Messages",
+          tabBarIcon: ({ focused }) => (
+            <Ionicons
+              name="chatbox"
+              size={24}
+              color={focused ? "#ff6200" : "#000"}
+            />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="explore"
+        options={{
+          title: "Explore",
+          tabBarIcon: ({ focused }) => (
+            <Ionicons
+              name="search"
+              size={24}
+              color={focused ? "#ff6200" : "#000"}
+            />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="profile"
+        options={{
+          title: "Profile",
+          tabBarIcon: ({ focused }) => (
+            <Ionicons
+              name="person"
+              size={24}
+              color={focused ? "#ff6200" : "#000"}
+            />
+          ),
+        }}
+      />
     </Tabs>
-  )
-}
+  );
+};
 
-export default RootLayout
+export default RootLayout;
