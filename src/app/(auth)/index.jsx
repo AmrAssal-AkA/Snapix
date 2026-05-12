@@ -1,6 +1,7 @@
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import React from "react";
 import { useRouter } from "expo-router";
+import { FontAwesome } from "@expo/vector-icons";
 
 export default function WelcomeScreen() {
   const router = useRouter();
@@ -12,7 +13,7 @@ export default function WelcomeScreen() {
       <View style={styles.content}>
         <Text style={{ fontSize: 24, fontWeight: "bold", marginBottom: 10 }}>
           Welcome to{" "}
-          <Text style={{ fontSize: 28, color: "#ff6200" }}> Snapix</Text>{" "}
+          <Text style={styles.brandName}> Snapix</Text>{" "}
         </Text>
         <Text
           style={{
@@ -86,4 +87,10 @@ const styles = StyleSheet.create({
     textAlign: "center",
     fontSize: 16,
   },
+  brandName: {
+    color: "#ff6200",
+    fontWeight: "bold",
+    fontSize: 40,
+    fontFamily: "Cochin",
+  }
 });

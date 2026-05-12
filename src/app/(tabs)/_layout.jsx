@@ -1,8 +1,9 @@
 import { Text, View } from "react-native";
-import React from "react";
-import { Tabs } from "expo-router";
-import { Ionicons } from "@expo/vector-icons";
+import React, { useEffect, useState } from "react";
+import { Tabs, useRouter} from "expo-router";
+import { Ionicons, FontAwesome5 } from "@expo/vector-icons";
 import Header from "../../components/Header";
+
 
 const RootLayout = () => {
 
@@ -55,8 +56,8 @@ const RootLayout = () => {
         options={{
           title: "Explore",
           tabBarIcon: ({ focused }) => (
-            <Ionicons
-              name="search"
+            <FontAwesome5
+              name="compass"
               size={24}
               color={focused ? "#ff6200" : "#000"}
             />
@@ -68,12 +69,20 @@ const RootLayout = () => {
         options={{
           title: "Profile",
           tabBarIcon: ({ focused }) => (
-            <Ionicons
-              name="person"
+            <FontAwesome5
+              name="user"
               size={24}
               color={focused ? "#ff6200" : "#000"}
             />
           ),
+          listeners: () => ({
+            tabPress: (e) => {
+              if (!session) {
+                e.preventDefault();
+                router.replace("/(auth)/login");
+              }
+            },
+          })
         }}
       />
     </Tabs>

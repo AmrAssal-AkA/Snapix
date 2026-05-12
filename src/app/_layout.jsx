@@ -1,32 +1,51 @@
-import { Text, View } from 'react-native'
-import React, { useEffect, useState } from 'react'
-import { Stack } from 'expo-router'
-import { supabase } from '../utils/supabase'
+import { Alert, Text, View } from "react-native";
+import React, { useEffect } from "react";
+import { Stack, useRouter, useSegments } from "expo-router";
+import { AuthProvider, useAuth } from "../context/AuthContext";
 
-const AppLayout = () => {
-  const [session, setsession] = useState(null);
+
+
+function RouteGuard(){
+  const router = useRouter();
+  const {user, loading} = useAuth();
+  const segments = useSegments();
+
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setsession(session);
-    });
-    const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
-      setsession(session);
-    });
-    return () => {
-      authListener.subscription.unsubscribe();
-    };
-  }, [])
+    if(loading) return;
+
+  const inAuthGroup = segments[0] === "(auth)";
+
+      if(user && inAuthGroup){
+        router.replace("/(tabs)/");
+      }else if(!user && !inAuthGroup){
+          router.replace("/(auth)/login");
+        }else{
+          console.log("User is authenticated and in the correct route group.");
+        }
+  }, [user, segments, router, loading])
 
   return (
-    <Stack > 
-        <Stack.Screen name='index' options={{title: "Welcome", headerShown: false}} />
-        <Stack.Screen name='(auth)' options={{title: "Account Management"}} />
-        <Stack.Screen name="(tabs)" options={{title: "Home" , headerShown: false }} />
+        <Stack screenOptions={{
+      headerShown: false,
+      headerTintColor: "#fff",
+      headerTitleStyle: { fontWeight: "bold" },
+    }}>
+      <Stack.Screen name="(tabs)" options={{ headerShown: false}} />
+      <Stack.Screen name="(auth)" />
     </Stack>
-
   )
 }
 
-export default AppLayout
 
+
+const AppLayout = () => {
+
+  return (
+    <AuthProvider>
+      <RouteGuard />
+</AuthProvider>
+  );
+};
+
+export default AppLayout;

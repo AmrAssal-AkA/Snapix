@@ -1,18 +1,21 @@
 import {
+  ActivityIndicator,
   Alert,
   Linking,
   Pressable,
   StyleSheet,
   Text,
   TextInput,
+  TouchableOpacity,
   View,
 } from "react-native";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { FontAwesome } from "@expo/vector-icons";
-import { Link, router, useRouter } from "expo-router";
-import { supabase } from "../../utils/supabase";
+import { Link, useRouter } from "expo-router";
+import { supabase } from "../../lib/supabase";
 import * as WebBrowser from "expo-web-browser";
 import { makeRedirectUri } from "expo-auth-session";
+import { useAuth } from "../../context/AuthContext";
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -23,6 +26,9 @@ const Signup = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const router = useRouter();
+  const {signUp} = useAuth();
+
+
 
   const handleSignup = async () => {
     if (!userName.trim() || !email.trim() || !password.trim()) {
@@ -43,26 +49,15 @@ const Signup = () => {
     try {
       setLoading(true);
       setError(null);
-      const { data, error } = await supabase.auth.signUp({
-        email: email.trim(),
-        password: password,
-        options: {
-          data: {
-            username: userName.trim(),
-          },
-        },
-      });
-      if (error) {
-        setError(error.message);
-        Alert.alert("Signup Error", error.message);
-        return;
+      const {data: existingUser } = await supabase.from("profiles").select("username").eq("username", userName).single();
+
+      if(existingUser){
+        Alert.alert("Validation Error", "Username already taken. Please choose another one.");
       }
-      Alert.alert(
-        "Signup Successful",
-        "Please check your email to confirm your account.",
-      );
+        await signUp(email, password, userName);
+       router.push("/(auth)/onBoarding");
     } catch (error) {
-      console.log("Error signing up:", error.message);
+      Alert.alert("Faild to sign up");
     } finally {
       setLoading(false);
     }
@@ -88,16 +83,22 @@ const Signup = () => {
         return;
       }
       if (data?.url) {
-        const result = await WebBrowser.openAuthSessionAsync(data.url, redirectUri);
-        if(result.type === "success"){
+        const result = await WebBrowser.openAuthSessionAsync(
+          data.url,
+          redirectUri,
+        );
+        if (result.type === "success") {
           const URL = new URL(result.url);
           await supabase.auth.setSession({
             access_token: URL.searchParams.get("access_token"),
             refresh_token: URL.searchParams.get("refresh_token"),
           });
-          
-          Alert.alert("Signup Successful", "You have successfully signed up with Google!"),
-          router.push("/(tabs)/");
+
+          (Alert.alert(
+            "Signup Successful",
+            "You have successfully signed up with Google!",
+          ),
+            router.push("/(tabs)/"));
         } else {
           Alert.alert("Google Signup Error", "Authentication was cancelled.");
         }
@@ -127,7 +128,7 @@ const Signup = () => {
 
       <View style={styles.regieterContainer}>
         <View style={{ marginBottom: 15 }}>
-          <Text style={styles.label}>Full Name</Text>
+          <Text style={styles.label}>UserName</Text>
           <FontAwesome
             name="user"
             size={20}
@@ -138,6 +139,9 @@ const Signup = () => {
             placeholder="John Doe"
             style={styles.input}
             onChangeText={setUserName}
+            value={userName}
+            autoCapitalize="words"
+            autoComplete="name"
           />
         </View>
 
@@ -153,6 +157,10 @@ const Signup = () => {
             placeholder="example@email.com"
             style={styles.input}
             onChangeText={setEmail}
+            valuse={email}
+            keyboardType="email-address"
+            autoComplete="email"
+            autoCapitalize="none"
           />
         </View>
 
@@ -169,15 +177,18 @@ const Signup = () => {
             secureTextEntry
             style={styles.input}
             onChangeText={setPassword}
+            value={password}
+            autoComplete="password"
+            autoCapitalize="none"
           />
         </View>
 
         <View style={{ marginBottom: 15 }}>
-          <Pressable style={styles.button} onPress={handleSignup}>
-            <Text style={styles.buttonText}>
-              {loading ? "Signing Up..." : "Sign Up"}
-            </Text>
-          </Pressable>
+          <TouchableOpacity style={styles.button} onPress={handleSignup}>
+            {loading ? (<ActivityIndicator size={24} color="white" />) : (
+              <Text style={styles.buttonText}>Sign Up</Text>
+            )}
+          </TouchableOpacity>
         </View>
 
         <View style={{ alignItems: "center" }}>
